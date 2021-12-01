@@ -11,12 +11,12 @@ import subbatch
 from datetime_format import datetime_format
 
 
-def send_batch(image_names, is_processing_on, platform):
+def send_batch(image_names, is_processing_on, thresh_window_size, platform):
     print(f"Sending batch starting with: {image_names[0]}")
     
     return {image_name:
             requests.post(url=api_connect.select_url(platform),
-                          json=api_connect.package_data(image_name, is_processing_on),
+                          json=api_connect.package_data(image_name, is_processing_on, thresh_window_size, platform),
                           headers={"Content-Type": "application/json"})
             for image_name in image_names}
 
@@ -25,7 +25,8 @@ def main():
     args = sys.argv[1:]
     image_names_filename = args[0]
     is_processing_on = args[1] == 'True'
-    platform = args[2]
+    thresh_window_size = int(args[2])
+    platform = args[3]
 
     # Read list of image filenames
     with open(image_names_filename) as image_names_file:
@@ -36,7 +37,7 @@ def main():
 
     with thread.ThreadPoolExecutor(max_workers=10) as tpx:
         # Fan out threads with one batch of names per thread
-        futures = [tpx.submit(send_batch, batch, is_processing_on, platform)
+        futures = [tpx.submit(send_batch, batch, is_processing_on, thresh_window_size, platform)
                    for batch in image_name_batches]
 
         # Collect the responses
